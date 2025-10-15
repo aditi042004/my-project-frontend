@@ -1,26 +1,65 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // --- THIS IS THE NEW BACKEND URL ---
 const API_URL = 'https://my-project-backend-wqyy.onrender.com';
 
-// --- Page Navigation ---
-const PAGES = { HOME: 'home', NLP_TOOL: 'nlp_tool', GAME: 'game', CHATBOT: 'chatbot' };
+// --- Page Navigation (UPDATED with Progress Page) ---
+const PAGES = { HOME: 'home', NLP_TOOL: 'nlp_tool', GAME: 'game', CHATBOT: 'chatbot', PROGRESS: 'progress' };
 
 // --- NEW: Spinner Component ---
 // A reusable loading indicator to make the UI feel more professional.
 const Spinner = () => (
-    <svg className="animate-spin h-6 w-6 text-purple-400" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg className="animate-spin h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
 );
 
 
-// --- Main App Component ---
+// --- Main App Component (UPDATED for Progress Tracking) ---
 export default function App() {
   const [currentPage, setCurrentPage] = useState(PAGES.HOME);
   const [gameData, setGameData] = useState(null);
+  const [progressData, setProgressData] = useState({});
+
+  // Load progress from localStorage on initial render
+  useEffect(() => {
+    try {
+      const savedProgress = localStorage.getItem('progressData');
+      if (savedProgress) {
+        setProgressData(JSON.parse(savedProgress));
+      }
+    } catch (error) {
+      console.error("Failed to load progress data:", error);
+      setProgressData({});
+    }
+  }, []);
+
+  // Function to update progress data and save to localStorage
+  const updateProgressData = (missedWordObject) => {
+    const newProgressData = { ...progressData };
+    const word = missedWordObject.word;
+
+    if (!newProgressData[word]) {
+      newProgressData[word] = {
+        meaning: missedWordObject.meaning,
+        missedCount: 1,
+        lastMissed: new Date().toISOString()
+      };
+    } else {
+      newProgressData[word].missedCount += 1;
+      newProgressData[word].lastMissed = new Date().toISOString();
+    }
+
+    setProgressData(newProgressData);
+    localStorage.setItem('progressData', JSON.stringify(newProgressData));
+  };
+    
+  // Function to clear all progress
+  const clearProgressData = () => {
+    setProgressData({});
+    localStorage.removeItem('progressData');
+  };
 
   const navigateTo = (page) => setCurrentPage(page);
 
@@ -29,9 +68,11 @@ export default function App() {
       case PAGES.NLP_TOOL:
         return <NlpToolPage navigateTo={navigateTo} setGameData={setGameData} gameReady={!!gameData} />;
       case PAGES.GAME:
-        return <MeaningMatchGamePage navigateTo={navigateTo} gameData={gameData} />;
+        return <MeaningMatchGamePage navigateTo={navigateTo} gameData={gameData} updateProgressData={updateProgressData} />;
       case PAGES.CHATBOT:
         return <ChatbotPage navigateTo={navigateTo} />;
+      case PAGES.PROGRESS:
+        return <ProgressPage navigateTo={navigateTo} progressData={progressData} clearProgressData={clearProgressData} />;
       default:
         return <HomePage navigateTo={navigateTo} />;
     }
@@ -40,7 +81,7 @@ export default function App() {
   return <div className="min-h-screen bg-gray-900 text-white font-sans">{renderPage()}</div>;
 }
 
-// --- 1. Home Page Component ---
+// --- 1. Home Page Component (UPDATED with Progress Button) ---
 const HomePage = ({ navigateTo }) => {
     const animationStyles = `
     @keyframes blob { 0% { transform: translate(0px, 0px) scale(1); } 33% { transform: translate(30px, -50px) scale(1.1); } 66% { transform: translate(-20px, 20px) scale(0.9); } 100% { transform: translate(0px, 0px) scale(1); } }
@@ -59,7 +100,8 @@ const HomePage = ({ navigateTo }) => {
         </div>
         <div className="mt-12 flex flex-col items-center w-full max-w-md animate-fadeInUp space-y-6">
           <button onClick={() => navigateTo(PAGES.NLP_TOOL)} className="group w-full inline-flex items-center justify-center px-8 py-5 text-xl font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-300">Start Analyzing</button>
-          <button onClick={() => navigateTo(PAGES.CHATBOT)} className="group w-full inline-flex items-center justify-center px-8 py-5 text-xl font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-purple-500/50 focus:outline-none focus:ring-4 focus:ring-purple-300">Solve bot</button>
+          <button onClick={() => navigateTo(PAGES.CHATBOT)} className="group w-full inline-flex items-center justify-center px-8 py-5 text-xl font-bold text-white bg-gradient-to-r from-blue-600 to-teal-600 rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-300">Solve Bot</button>
+          <button onClick={() => navigateTo(PAGES.PROGRESS)} className="group w-full inline-flex items-center justify-center px-8 py-5 text-xl font-bold text-white bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl shadow-2xl transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-green-500/50 focus:outline-none focus:ring-4 focus:ring-green-300">My Learning Path</button>
         </div>
       </main>
     </div>
@@ -77,16 +119,16 @@ const NlpToolPage = ({ navigateTo, setGameData, gameReady }) => {
         {nlpResult && (<div className="card"><h3 className="text-2xl font-bold mb-4 text-green-300">Results: {nlpResult.title}</h3><div className="max-h-96 overflow-y-auto pr-2">{nlpResult.data.map((item, index) => (<div key={index} className="bg-black/50 p-3 rounded-lg mb-2 text-left"><h4 className="font-bold text-lg text-purple-300 mb-2">{item.original}</h4>{Object.entries(item.processed).map(([key, value]) => (<p key={key}><span className="font-semibold text-gray-400">{key}:</span> {JSON.stringify(value)}</p>))}</div>))}</div></div>)}</div><div className="text-center my-8"><button onClick={() => navigateTo(PAGES.GAME)} disabled={!gameReady} className="btn-success disabled:bg-gray-600 disabled:cursor-not-allowed">{gameReady ? 'Play Word Challenge!' : 'Upload CSV to Enable Game'}</button></div><style>{`.card{background-color:rgba(31,41,55,0.5);border-radius:1rem;padding:2rem;box-shadow:0 10px 25px rgba(0,0,0,0.2);border:1px solid #4b5563}.btn-primary{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0.75rem 1.5rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#8b5cf6,#6366f1);border-radius:0.75rem;transition:all .3s;box-shadow:0 4px 15px rgba(139,92,246,0.3)}.btn-primary:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(139,92,246,0.4)}.btn-secondary{background-color:#4b5563;color:#fff;font-weight:700;padding:0.5rem 1rem;border-radius:0.5rem;transition:background-color .2s}.btn-secondary:hover{background-color:#6b7280}.btn-success{padding:1rem 2rem;font-size:1.25rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#10b981,#059669);border-radius:0.75rem;box-shadow:0 4px 15px rgba(16,185,129,0.3);transition:all .3s}.btn-success:hover:not(:disabled){transform:scale(1.05);box-shadow:0 6px 20px rgba(16,185,129,0.4)}.nlp-button{background-color:#374151;border:1px solid #4b5563;color:#fff;font-weight:600;padding:0.75rem 1rem;border-radius:0.75rem;transition:all .2s}.nlp-button:hover{background-color:#4b5563;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}.error-box{text-align:center;font-size:1.25rem;color:#f87171;background-color:rgba(153,27,27,0.5);padding:1rem;border-radius:0.5rem}`}</style></div>);
 };
 
-// --- 3. Game Page ---
-const MeaningMatchGamePage = ({ navigateTo, gameData }) => {
+// --- 3. Game Page (UPDATED to track incorrect answers) ---
+const MeaningMatchGamePage = ({ navigateTo, gameData, updateProgressData }) => {
     const [gameState, setGameState] = useState('difficultySelection'); const [difficulty, setDifficulty] = useState(null); const [score, setScore] = useState(0); const [highScore, setHighScore] = useState(0); const [level, setLevel] = useState(1); const [questionInLevel, setQuestionInLevel] = useState(0); const [correctInLevel, setCorrectInLevel] = useState(0); const [timeLeft, setTimeLeft] = useState(20); const [currentRound, setCurrentRound] = useState(null); const [options, setOptions] = useState([]); const [feedback, setFeedback] = useState(''); const [transitionMessage, setTransitionMessage] = useState({ title: '', body: '' }); const timerRef = useRef(null);
     const DIFFICULTIES = { easy: { name: 'Easy', time: 20 }, medium: { name: 'Medium', time: 15 }, hard: { name: 'Hard', time: 10 } };
     useEffect(() => { if (score > highScore) { setHighScore(score); if (difficulty) { localStorage.setItem(`highScore_${difficulty.name.toLowerCase()}`, score); } } }, [score, highScore, difficulty]);
     const setupRound = () => { setFeedback(''); setTimeLeft(difficulty.time); if (!gameData || gameData.length < 4) return; const correctIndex = Math.floor(Math.random() * gameData.length); const correctAnswer = gameData[correctIndex]; const wrongAnswers = []; const usedWords = [correctAnswer.word]; while (wrongAnswers.length < 3) { const wrongIndex = Math.floor(Math.random() * gameData.length); const potentialWrongAnswer = gameData[wrongIndex]; if (!usedWords.includes(potentialWrongAnswer.word)) { wrongAnswers.push(potentialWrongAnswer); usedWords.push(potentialWrongAnswer.word); } } setCurrentRound(correctAnswer); setOptions([correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5)); };
     useEffect(() => { if (gameState === 'playing' && difficulty) { setupRound(); } }, [gameState, level, difficulty]);
-    useEffect(() => { if (gameState !== 'playing' || feedback) { clearInterval(timerRef.current); return; } timerRef.current = setInterval(() => { setTimeLeft(prev => { if (prev <= 1) { clearInterval(timerRef.current); setFeedback('incorrect'); handleNextStep(); return 0; } return prev - 1; }); }, 1000); return () => clearInterval(timerRef.current); }, [gameState, feedback, currentRound]);
+    useEffect(() => { if (gameState !== 'playing' || feedback) { clearInterval(timerRef.current); return; } timerRef.current = setInterval(() => { setTimeLeft(prev => { if (prev <= 1) { clearInterval(timerRef.current); setFeedback('incorrect'); if (currentRound) { updateProgressData(currentRound); } handleNextStep(); return 0; } return prev - 1; }); }, 1000); return () => clearInterval(timerRef.current); }, [gameState, feedback, currentRound]);
     const handleNextStep = () => { setTimeout(() => { if (questionInLevel >= 4) { if (correctInLevel >= 4) { setTransitionMessage({ title: `Level ${level} Complete!`, body: `You're advancing to Level ${level + 1}!` }); setLevel(prev => prev + 1); } else { setTransitionMessage({ title: `Level ${level}`, body: `You need 5 correct answers to advance. Let's try again!` }); } setGameState('levelTransition'); setQuestionInLevel(0); setCorrectInLevel(0); } else { setQuestionInLevel(prev => prev + 1); setupRound(); } }, 1500); };
-    const handleOptionClick = (option) => { if (feedback) return; clearInterval(timerRef.current); const isCorrect = option.word === currentRound.word; if (isCorrect) { setScore(s => s + timeLeft); setCorrectInLevel(c => c + 1); setFeedback('correct'); } else { setFeedback('incorrect'); } handleNextStep(); };
+    const handleOptionClick = (option) => { if (feedback) return; clearInterval(timerRef.current); const isCorrect = option.word === currentRound.word; if (isCorrect) { setScore(s => s + timeLeft); setCorrectInLevel(c => c + 1); setFeedback('correct'); } else { setFeedback('incorrect'); if (currentRound) { updateProgressData(currentRound); } } handleNextStep(); };
     const startGame = (diff) => { const selectedDifficulty = DIFFICULTIES[diff]; setDifficulty(selectedDifficulty); const savedHighScore = localStorage.getItem(`highScore_${selectedDifficulty.name.toLowerCase()}`) || 0; setHighScore(parseInt(savedHighScore, 10)); setLevel(1); setScore(0); setQuestionInLevel(0); setCorrectInLevel(0); setGameState('playing'); };
     if (!gameData || gameData.length < 4) { return ( <div className="flex flex-col items-center justify-center min-h-screen text-center"><h2 className="text-3xl font-bold text-red-400 mb-4">Game Data Missing!</h2><p className="text-lg text-gray-400 mb-8">Please upload a valid CSV with at least 4 words on the toolkit page first.</p><button onClick={() => navigateTo(PAGES.NLP_TOOL)} className="btn-secondary">&larr; Go Back to Toolkit</button></div>); }
     if (gameState === 'difficultySelection') { return ( <div className="flex flex-col items-center justify-center min-h-screen p-4"><h2 className="text-5xl font-bold mb-8">Choose Your Difficulty</h2><div className="space-y-6 w-full max-w-sm"><button onClick={() => startGame('easy')} className="w-full text-2xl font-bold p-6 rounded-lg bg-green-600 hover:bg-green-500 transition-colors duration-300">Easy <span className="block text-lg font-normal">20 seconds per question</span></button><button onClick={() => startGame('medium')} className="w-full text-2xl font-bold p-6 rounded-lg bg-yellow-600 hover:bg-yellow-500 transition-colors duration-300">Medium <span className="block text-lg font-normal">15 seconds per question</span></button><button onClick={() => startGame('hard')} className="w-full text-2xl font-bold p-6 rounded-lg bg-red-600 hover:bg-red-500 transition-colors duration-300">Hard <span className="block text-lg font-normal">10 seconds per question</span></button></div></div> ); }
@@ -104,7 +146,64 @@ const ChatbotPage = ({ navigateTo }) => {
     const base64ToArrayBuffer = (base64) => { const binaryString = window.atob(base64); const len = binaryString.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); } return bytes.buffer; };
     const pcmToWav = (pcmData, sampleRate) => { const numChannels = 1; const bitsPerSample = 16; const blockAlign = (numChannels * bitsPerSample) / 8; const byteRate = sampleRate * blockAlign; const dataSize = pcmData.byteLength; const buffer = new ArrayBuffer(44 + dataSize); const view = new DataView(buffer); view.setUint32(0, 0x52494646, false); view.setUint32(4, 36 + dataSize, true); view.setUint32(8, 0x57415645, false); view.setUint32(12, 0x666d7420, false); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true); view.setUint16(34, bitsPerSample, true); view.setUint32(36, 0x64617461, false); view.setUint32(40, dataSize, true); const pcm16 = new Int16Array(pcmData); for (let i = 0; i < pcm16.length; i++) { view.setInt16(44 + i * 2, pcm16[i], true); } return new Blob([view], { type: 'audio/wav' }); };
     const handlePronounce = async (word) => { try { const response = await fetch(`${API_URL}/api/tts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: word }), }); const data = await response.json(); if (data.audioContent) { const pcmData = base64ToArrayBuffer(data.audioContent); const wavBlob = pcmToWav(pcmData, 24000); const audioUrl = URL.createObjectURL(wavBlob); const audio = new Audio(audioUrl); audio.play(); } } catch (error) { console.error("Pronunciation error:", error); } };
-    return ( <div className="flex flex-col h-screen p-4 bg-gray-900"> <div className="flex justify-between items-center mb-4"> <button onClick={() => navigateTo(PAGES.HOME)} className="btn-secondary">{uiText[language].back}</button> <h1 className="text-3xl font-bold text-purple-300">{uiText[language].title}</h1> <div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg"> <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'en' ? 'bg-purple-600' : ''}`}>EN</button> <button onClick={() => setLanguage('hi')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'hi' ? 'bg-purple-600' : ''}`}>HI</button> </div> </div> <div ref={chatContainerRef} className="flex-grow bg-gray-800/50 rounded-lg p-4 overflow-y-auto space-y-4"> {messages.map((msg, index) => ( <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}> <div className={`max-w-lg p-3 rounded-xl ${msg.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-200'}`}> <p className="whitespace-pre-wrap">{msg.text}</p> {msg.isDefinition && ( <button onClick={() => handlePronounce(msg.word)} className="mt-2 text-sm bg-blue-600 hover:bg-blue-500 rounded-full px-3 py-1 inline-flex items-center"> <svg xmlns="http://www.w.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a.75.75 0 01.75.75v11.5a.75.75 0 01-1.5 0V4.25A.75.75 0 0110 3.5zM5.5 6.5A.75.75 0 016.25 7.25v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 015.5 6.5zM14.5 6.5a.75.75 0 01.75.75v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 0114.5 6.5z" /></svg> Pronounce </button> )} </div> </div> ))}
+    return ( <div className="flex flex-col h-screen p-4 bg-gray-900"> <div className="flex justify-between items-center mb-4"> <button onClick={() => navigateTo(PAGES.HOME)} className="btn-secondary">{uiText[language].back}</button> <h1 className="text-3xl font-bold text-purple-300">{uiText[language].title}</h1> <div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg"> <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'en' ? 'bg-purple-600' : ''}`}>EN</button> <button onClick={() => setLanguage('hi')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'hi' ? 'bg-purple-600' : ''}`}>HI</button> </div> </div> <div ref={chatContainerRef} className="flex-grow bg-gray-800/50 rounded-lg p-4 overflow-y-auto space-y-4"> {messages.map((msg, index) => ( <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}> <div className={`max-w-lg p-3 rounded-xl ${msg.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-200'}`}> <p className="whitespace-pre-wrap">{msg.text}</p> {msg.isDefinition && ( <button onClick={() => handlePronounce(msg.word)} className="mt-2 text-sm bg-blue-600 hover:bg-blue-500 rounded-full px-3 py-1 inline-flex items-center"> <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a.75.75 0 01.75.75v11.5a.75.75 0 01-1.5 0V4.25A.75.75 0 0110 3.5zM5.5 6.5A.75.75 0 016.25 7.25v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 015.5 6.5zM14.5 6.5a.75.75 0 01.75.75v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 0114.5 6.5z" /></svg> Pronounce </button> )} </div> </div> ))}
         {isLoading && <div className="flex justify-start"><div className="p-3 rounded-xl bg-gray-700 text-gray-200"><Spinner /></div></div>}
         </div> <form onSubmit={handleSendMessage} className="mt-4 flex"> <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={uiText[language].placeholder} className="flex-grow bg-gray-800 border border-gray-700 rounded-l-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500" /> <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-r-lg">{uiText[language].send}</button> </form> </div> );
+};
+
+// --- 5. NEW: Progress Page ---
+const ProgressPage = ({ navigateTo, progressData, clearProgressData }) => {
+    const trackedWords = Object.entries(progressData);
+
+    // Sort words by most missed, then alphabetically
+    trackedWords.sort(([, a], [, b]) => {
+        if (b.missedCount !== a.missedCount) {
+            return b.missedCount - a.missedCount;
+        }
+        return a.word > b.word ? 1 : -1;
+    });
+
+    return (
+        <div className="p-6 md:p-10 max-w-5xl mx-auto">
+            <button onClick={() => navigateTo(PAGES.HOME)} className="mb-8 btn-secondary">&larr; Back to Home</button>
+            <div className="card">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-4xl font-bold mb-2 text-green-300">Your Learning Path</h2>
+                        <p className="text-gray-400 mb-6">Words you've struggled with in the game are tracked here. Focus on these to improve!</p>
+                    </div>
+                    {trackedWords.length > 0 && (
+                         <button onClick={clearProgressData} className="btn-secondary" style={{backgroundColor: '#991b1b'}}>Clear Progress</button>
+                    )}
+                </div>
+
+                {trackedWords.length === 0 ? (
+                    <div className="text-center py-12">
+                        <h3 className="text-2xl font-semibold text-gray-300">No Progress Tracked Yet</h3>
+                        <p className="text-gray-500 mt-2">Play the 'Word Challenge' game to start your personalized learning path.</p>
+                        <button onClick={() => navigateTo(PAGES.NLP_TOOL)} className="mt-6 btn-primary">Go to Toolkit &rarr;</button>
+                    </div>
+                ) : (
+                    <div>
+                        <h3 className="text-2xl font-semibold mb-4 text-purple-300">Words to Practice ({trackedWords.length})</h3>
+                        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">
+                            {trackedWords.map(([word, data]) => (
+                                <div key={word} className="bg-black/50 p-4 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <h4 className="font-bold text-xl text-purple-300">{word}</h4>
+                                        <p className="text-gray-400">{data.meaning}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-lg text-red-400">{data.missedCount} time{data.missedCount > 1 ? 's' : ''}</p>
+                                        <p className="text-xs text-gray-500">Missed</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+            <style>{`.card{background-color:rgba(31,41,55,0.5);border-radius:1rem;padding:2rem;box-shadow:0 10px 25px rgba(0,0,0,0.2);border:1px solid #4b5563}.btn-primary{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0.75rem 1.5rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#8b5cf6,#6366f1);border-radius:0.75rem;transition:all .3s;box-shadow:0 4px 15px rgba(139,92,246,0.3)}.btn-primary:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(139,92,246,0.4)}.btn-secondary{background-color:#4b5563;color:#fff;font-weight:700;padding:0.5rem 1rem;border-radius:0.5rem;transition:background-color .2s}.btn-secondary:hover{background-color:#6b7280}`}</style>
+        </div>
+    );
 };
