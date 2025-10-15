@@ -6,8 +6,7 @@ const API_URL = 'https://my-project-backend-wqyy.onrender.com';
 // --- Page Navigation (UPDATED with Progress Page) ---
 const PAGES = { HOME: 'home', NLP_TOOL: 'nlp_tool', GAME: 'game', CHATBOT: 'chatbot', PROGRESS: 'progress' };
 
-// --- NEW: Spinner Component ---
-// A reusable loading indicator to make the UI feel more professional.
+// --- Reusable Spinner Component ---
 const Spinner = () => (
     <svg className="animate-spin h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -15,14 +14,12 @@ const Spinner = () => (
     </svg>
 );
 
-
 // --- Main App Component (UPDATED for Progress Tracking) ---
 export default function App() {
   const [currentPage, setCurrentPage] = useState(PAGES.HOME);
   const [gameData, setGameData] = useState(null);
   const [progressData, setProgressData] = useState({});
 
-  // Load progress from localStorage on initial render
   useEffect(() => {
     try {
       const savedProgress = localStorage.getItem('progressData');
@@ -35,27 +32,21 @@ export default function App() {
     }
   }, []);
 
-  // Function to update progress data and save to localStorage
   const updateProgressData = (missedWordObject) => {
-    const newProgressData = { ...progressData };
-    const word = missedWordObject.word;
-
-    if (!newProgressData[word]) {
-      newProgressData[word] = {
-        meaning: missedWordObject.meaning,
-        missedCount: 1,
-        lastMissed: new Date().toISOString()
-      };
-    } else {
-      newProgressData[word].missedCount += 1;
-      newProgressData[word].lastMissed = new Date().toISOString();
-    }
-
-    setProgressData(newProgressData);
-    localStorage.setItem('progressData', JSON.stringify(newProgressData));
+    setProgressData(currentProgress => {
+        const newProgress = { ...currentProgress };
+        const word = missedWordObject.word;
+        if (!newProgress[word]) {
+            newProgress[word] = { ...missedWordObject, missedCount: 1, lastMissed: new Date().toISOString() };
+        } else {
+            newProgress[word].missedCount += 1;
+            newProgress[word].lastMissed = new Date().toISOString();
+        }
+        localStorage.setItem('progressData', JSON.stringify(newProgress));
+        return newProgress;
+    });
   };
     
-  // Function to clear all progress
   const clearProgressData = () => {
     setProgressData({});
     localStorage.removeItem('progressData');
@@ -108,7 +99,7 @@ const HomePage = ({ navigateTo }) => {
   );
 };
 
-// --- 2. NLP Tool Page (UPDATED with Spinner) ---
+// --- 2. NLP Tool Page ---
 const NlpToolPage = ({ navigateTo, setGameData, gameReady }) => {
     const [csvFile, setCsvFile] = useState(null); const [fileName, setFileName] = useState(''); const [isLoading, setIsLoading] = useState(false); const [error, setError] = useState(''); const [nlpResult, setNlpResult] = useState(null);
     const handleFileChange = async (event) => { const file = event.target.files[0]; if (!file) return; setCsvFile(file); setFileName(file.name); setNlpResult(null); setError(''); setIsLoading(true); const formData = new FormData(); formData.append('csvfile', file); try { const response = await fetch(`${API_URL}/api/load-game-data`, { method: 'POST', body: formData }); if (!response.ok) throw new Error('Failed to load game data.'); const data = await response.json(); if (data.length === 0) throw new Error('CSV file might be empty or in the wrong format.'); setGameData(data); } catch (err) { setError(err.message); setGameData(null); } finally { setIsLoading(false); } };
@@ -136,7 +127,7 @@ const MeaningMatchGamePage = ({ navigateTo, gameData, updateProgressData }) => {
     return (<div className="flex flex-col items-center justify-center min-h-screen p-4"><div className="w-full max-w-2xl"><div className="flex justify-between items-center mb-4"><button onClick={() => navigateTo(PAGES.NLP_TOOL)} className="btn-secondary">&larr; Back to Toolkit</button><div className="text-center"><p className="text-xl text-gray-400">Level {level} ({difficulty?.name})</p><p className="text-2xl font-bold text-green-400">Question {questionInLevel + 1}/5</p></div><div className="text-right"><p className="text-xl text-gray-400">Score</p><p className="text-4xl font-bold text-purple-400">{score}</p><p className="text-sm text-gray-500 -mt-1">High Score: {highScore}</p></div></div><div className="card text-center relative"><div className={`absolute top-4 right-4 text-5xl font-bold ${timeLeft <= 5 ? 'text-red-500 animate-ping' : 'text-yellow-300'}`}>{timeLeft}</div><p className="text-lg text-gray-400 mb-2">What is the meaning of...</p><h2 className="text-3xl md:text-4xl font-bold mb-8 h-24 flex items-center justify-center">{currentRound?.meaning}</h2><div className="grid grid-cols-2 gap-4">{options.map((option) => (<button key={option.word} onClick={() => handleOptionClick(option)} disabled={!!feedback} className={`p-4 rounded-lg text-xl font-bold transition-all duration-300 transform ${!feedback ? 'bg-gray-700 hover:bg-purple-600 hover:scale-105' : ''} ${feedback && option.word === currentRound.word ? 'bg-green-600 scale-105' : ''} ${feedback === 'incorrect' && option.word !== currentRound.word ? 'bg-red-800 opacity-50' : ''}`}>{option.word}</button>))}</div></div></div></div>);
 };
 
-// --- 4. Chatbot Page (UPDATED with Spinner) ---
+// --- 4. Chatbot Page ---
 const ChatbotPage = ({ navigateTo }) => {
     const [language, setLanguage] = useState('en'); const [isLoading, setIsLoading] = useState(false); const [userInput, setUserInput] = useState(''); const [messages, setMessages] = useState([]); const chatContainerRef = useRef(null);
     const uiText = { en: { title: "NLP Chatbot", placeholder: "Translate a paragraph or ask for a word's meaning...", send: "Send", welcome: "Hello! I'm SolveBot. How can I help you today?", back: "Back to Home" }, hi: { title: "एनएलपी चैटबॉट", placeholder: "एक पैराग्राफ का अनुवाद करें या किसी शब्द का अर्थ पूछें...", send: "भेजें", welcome: "नमस्ते! मैं सॉल्वबॉट हूँ। मैं आज आपकी कैसे मदद कर सकता हूँ?", back: "होम पर वापस जाएं" } };
@@ -146,64 +137,205 @@ const ChatbotPage = ({ navigateTo }) => {
     const base64ToArrayBuffer = (base64) => { const binaryString = window.atob(base64); const len = binaryString.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); } return bytes.buffer; };
     const pcmToWav = (pcmData, sampleRate) => { const numChannels = 1; const bitsPerSample = 16; const blockAlign = (numChannels * bitsPerSample) / 8; const byteRate = sampleRate * blockAlign; const dataSize = pcmData.byteLength; const buffer = new ArrayBuffer(44 + dataSize); const view = new DataView(buffer); view.setUint32(0, 0x52494646, false); view.setUint32(4, 36 + dataSize, true); view.setUint32(8, 0x57415645, false); view.setUint32(12, 0x666d7420, false); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true); view.setUint16(34, bitsPerSample, true); view.setUint32(36, 0x64617461, false); view.setUint32(40, dataSize, true); const pcm16 = new Int16Array(pcmData); for (let i = 0; i < pcm16.length; i++) { view.setInt16(44 + i * 2, pcm16[i], true); } return new Blob([view], { type: 'audio/wav' }); };
     const handlePronounce = async (word) => { try { const response = await fetch(`${API_URL}/api/tts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: word }), }); const data = await response.json(); if (data.audioContent) { const pcmData = base64ToArrayBuffer(data.audioContent); const wavBlob = pcmToWav(pcmData, 24000); const audioUrl = URL.createObjectURL(wavBlob); const audio = new Audio(audioUrl); audio.play(); } } catch (error) { console.error("Pronunciation error:", error); } };
-    return ( <div className="flex flex-col h-screen p-4 bg-gray-900"> <div className="flex justify-between items-center mb-4"> <button onClick={() => navigateTo(PAGES.HOME)} className="btn-secondary">{uiText[language].back}</button> <h1 className="text-3xl font-bold text-purple-300">{uiText[language].title}</h1> <div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg"> <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'en' ? 'bg-purple-600' : ''}`}>EN</button> <button onClick={() => setLanguage('hi')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'hi' ? 'bg-purple-600' : ''}`}>HI</button> </div> </div> <div ref={chatContainerRef} className="flex-grow bg-gray-800/50 rounded-lg p-4 overflow-y-auto space-y-4"> {messages.map((msg, index) => ( <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}> <div className={`max-w-lg p-3 rounded-xl ${msg.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-200'}`}> <p className="whitespace-pre-wrap">{msg.text}</p> {msg.isDefinition && ( <button onClick={() => handlePronounce(msg.word)} className="mt-2 text-sm bg-blue-600 hover:bg-blue-500 rounded-full px-3 py-1 inline-flex items-center"> <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a.75.75 0 01.75.75v11.5a.75.75 0 01-1.5 0V4.25A.75.75 0 0110 3.5zM5.5 6.5A.75.75 0 016.25 7.25v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 015.5 6.5zM14.5 6.5a.75.75 0 01.75.75v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 0114.5 6.5z" /></svg> Pronounce </button> )} </div> </div> ))}
+    return ( <div className="flex flex-col h-screen p-4 bg-gray-900"> <div className="flex justify-between items-center mb-4"> <button onClick={() => navigateTo(PAGES.HOME)} className="btn-secondary">{uiText[language].back}</button> <h1 className="text-3xl font-bold text-purple-300">{uiText[language].title}</h1> <div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg"> <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'en' ? 'bg-purple-600' : ''}`}>EN</button> <button onClick={() => setLanguage('hi')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'hi' ? 'bg-purple-600' : ''}`}>HI</button> </div> </div> <div ref={chatContainerRef} className="flex-grow bg-gray-800/50 rounded-lg p-4 overflow-y-auto space-y-4"> {messages.map((msg, index) => ( <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}> <div className={`max-w-lg p-3 rounded-xl ${msg.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-200'}`}> <p className="whitespace-pre-wrap">{msg.text}</p> {msg.isDefinition && ( <button onClick={() => handlePronounce(msg.word)} className="mt-2 text-sm bg-blue-600 hover:bg-blue-500 rounded-full px-3 py-1 inline-flex items-center"> <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4a1 1 0 011.707-.707l6 6a1 1 0 010 1.414l-6 6A1 1 0 017 16V4z" /></svg> Pronounce </button> )} </div> </div> ))}
         {isLoading && <div className="flex justify-start"><div className="p-3 rounded-xl bg-gray-700 text-gray-200"><Spinner /></div></div>}
         </div> <form onSubmit={handleSendMessage} className="mt-4 flex"> <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={uiText[language].placeholder} className="flex-grow bg-gray-800 border border-gray-700 rounded-l-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500" /> <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-r-lg">{uiText[language].send}</button> </form> </div> );
 };
 
-// --- 5. NEW: Progress Page ---
+// --- 5. IMPROVED: Progress Page ---
 const ProgressPage = ({ navigateTo, progressData, clearProgressData }) => {
-    const trackedWords = Object.entries(progressData);
+    const [isQuizActive, setIsQuizActive] = useState(false);
+    
+    // --- Audio Pronunciation Logic ---
+    const handlePronounce = async (word) => {
+        try {
+            const response = await fetch(`${API_URL}/api/tts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: word }), });
+            const data = await response.json();
+            if (data.audioContent) {
+                const base64ToArrayBuffer = (base64) => { const b = window.atob(base64); const l = b.length; const u = new Uint8Array(l); for (let i = 0; i < l; ++i) { u[i] = b.charCodeAt(i); } return u.buffer; };
+                const pcmToWav = (pcm, rate) => { const d = pcm.byteLength; const b = new ArrayBuffer(44 + d); const v = new DataView(b); v.setUint32(0, 0x52494646, false); v.setUint32(4, 36 + d, true); v.setUint32(8, 0x57415645, false); v.setUint32(12, 0x666d7420, false); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); v.setUint32(36, 0x64617461, false); v.setUint32(40, d, true); new Int16Array(b, 44).set(new Int16Array(pcm)); return new Blob([v], { type: 'audio/wav' }); };
+                const pcmData = base64ToArrayBuffer(data.audioContent);
+                const wavBlob = pcmToWav(pcmData, 24000);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                new Audio(audioUrl).play();
+            }
+        } catch (error) { console.error("Pronunciation error:", error); }
+    };
+    
+    // --- Data processing ---
+    const trackedWords = Object.values(progressData).sort((a, b) => b.missedCount - a.missedCount || new Date(b.lastMissed) - new Date(a.lastMissed));
+    const totalMistakes = trackedWords.reduce((sum, word) => sum + word.missedCount, 0);
 
-    // Sort words by most missed, then alphabetically
-    trackedWords.sort(([, a], [, b]) => {
-        if (b.missedCount !== a.missedCount) {
-            return b.missedCount - a.missedCount;
+    const handleClearProgress = () => {
+        if (window.confirm("Are you sure you want to delete all your progress? This action cannot be undone.")) {
+            clearProgressData();
         }
-        return a.word > b.word ? 1 : -1;
-    });
+    };
+
+    if (isQuizActive) {
+        return <PracticeQuiz wordsToPractice={trackedWords} onQuizEnd={() => setIsQuizActive(false)} />;
+    }
 
     return (
         <div className="p-6 md:p-10 max-w-5xl mx-auto">
             <button onClick={() => navigateTo(PAGES.HOME)} className="mb-8 btn-secondary">&larr; Back to Home</button>
             <div className="card">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-bold mb-2 text-green-300">Your Learning Path</h2>
-                        <p className="text-gray-400 mb-6">Words you've struggled with in the game are tracked here. Focus on these to improve!</p>
+                        <h2 className="text-4xl font-bold text-green-300">Your Learning Path</h2>
+                        <p className="text-gray-400">Review your progress and practice the words you've found challenging.</p>
                     </div>
-                    {trackedWords.length > 0 && (
-                         <button onClick={clearProgressData} className="btn-secondary" style={{backgroundColor: '#991b1b'}}>Clear Progress</button>
-                    )}
                 </div>
 
                 {trackedWords.length === 0 ? (
                     <div className="text-center py-12">
                         <h3 className="text-2xl font-semibold text-gray-300">No Progress Tracked Yet</h3>
-                        <p className="text-gray-500 mt-2">Play the 'Word Challenge' game to start your personalized learning path.</p>
+                        <p className="text-gray-500 mt-2">Play the 'Word Challenge' game to start building your personalized learning path.</p>
                         <button onClick={() => navigateTo(PAGES.NLP_TOOL)} className="mt-6 btn-primary">Go to Toolkit &rarr;</button>
                     </div>
                 ) : (
-                    <div>
-                        <h3 className="text-2xl font-semibold mb-4 text-purple-300">Words to Practice ({trackedWords.length})</h3>
-                        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">
-                            {trackedWords.map(([word, data]) => (
-                                <div key={word} className="bg-black/50 p-4 rounded-lg flex justify-between items-center">
-                                    <div>
-                                        <h4 className="font-bold text-xl text-purple-300">{word}</h4>
+                    <>
+                        {/* --- Stats Dashboard --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div className="stat-card bg-gray-800"><p className="text-4xl font-bold text-purple-400">{trackedWords.length}</p><p className="text-gray-400">Words to Master</p></div>
+                            <div className="stat-card bg-gray-800"><p className="text-4xl font-bold text-red-400">{totalMistakes}</p><p className="text-gray-400">Total Mistakes</p></div>
+                            <div className="stat-card bg-gray-800 flex flex-col justify-center">
+                                {trackedWords.length >= 4 ? (
+                                    <button onClick={() => setIsQuizActive(true)} className="btn-success">Start Practice Quiz</button>
+                                ) : (
+                                    <p className="text-center text-gray-500">Need at least 4 missed words to start a quiz.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* --- Word List --- */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-2xl font-semibold text-purple-300">Practice List</h3>
+                             <button onClick={handleClearProgress} className="btn-secondary !bg-red-800 hover:!bg-red-700">Clear All Progress</button>
+                        </div>
+                        <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-3">
+                            {trackedWords.map((data) => (
+                                <div key={data.word} className="bg-black/50 p-4 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-xl text-purple-300">{data.word}</h4>
                                         <p className="text-gray-400">{data.meaning}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-lg text-red-400">{data.missedCount} time{data.missedCount > 1 ? 's' : ''}</p>
-                                        <p className="text-xs text-gray-500">Missed</p>
+                                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                                        <div className="text-center">
+                                            <p className="font-bold text-lg text-red-400">{data.missedCount}</p>
+                                            <p className="text-xs text-gray-500">Missed</p>
+                                        </div>
+                                        <div className="text-center flex-1 sm:flex-auto">
+                                            <p className="font-semibold text-sm text-gray-300">{formatRelativeTime(data.lastMissed)}</p>
+                                            <p className="text-xs text-gray-500">Last Missed</p>
+                                        </div>
+                                        <button onClick={() => handlePronounce(data.word)} title="Pronounce word" className="p-3 bg-blue-600 hover:bg-blue-500 rounded-full transition-colors">
+                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a.75.75 0 01.75.75v11.5a.75.75 0 01-1.5 0V4.25A.75.75 0 0110 3.5zM5.5 6.5a.75.75 0 016.25 7.25v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 015.5 6.5zM14.5 6.5a.75.75 0 01.75.75v5.5a.75.75 0 01-1.5 0V7.25A.75.75 0 0114.5 6.5z" /></svg>
+                                        </button>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
-            <style>{`.card{background-color:rgba(31,41,55,0.5);border-radius:1rem;padding:2rem;box-shadow:0 10px 25px rgba(0,0,0,0.2);border:1px solid #4b5563}.btn-primary{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0.75rem 1.5rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#8b5cf6,#6366f1);border-radius:0.75rem;transition:all .3s;box-shadow:0 4px 15px rgba(139,92,246,0.3)}.btn-primary:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(139,92,246,0.4)}.btn-secondary{background-color:#4b5563;color:#fff;font-weight:700;padding:0.5rem 1rem;border-radius:0.5rem;transition:background-color .2s}.btn-secondary:hover{background-color:#6b7280}`}</style>
+            <style>{`.card{background-color:rgba(31,41,55,0.5);border-radius:1rem;padding:2rem;box-shadow:0 10px 25px rgba(0,0,0,0.2);border:1px solid #4b5563}.btn-primary{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0.75rem 1.5rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#8b5cf6,#6366f1);border-radius:0.75rem;transition:all .3s;box-shadow:0 4px 15px rgba(139,92,246,0.3)}.btn-primary:hover{transform:scale(1.05);box-shadow:0 6px 20px rgba(139,92,246,0.4)}.btn-secondary{background-color:#4b5563;color:#fff;font-weight:700;padding:0.5rem 1rem;border-radius:0.5rem;transition:background-color .2s}.btn-secondary:hover{background-color:#6b7280}.btn-success{padding:1rem 2rem;font-size:1.1rem;font-weight:700;color:#fff;background-image:linear-gradient(to right,#10b981,#059669);border-radius:0.75rem;box-shadow:0 4px 15px rgba(16,185,129,0.3);transition:all .3s}.btn-success:hover:not(:disabled){transform:scale(1.05);box-shadow:0 6px 20px rgba(16,185,129,0.4)}.stat-card{padding:1.5rem;text-align:center;border-radius:1rem;}`}</style>
         </div>
     );
 };
+
+// --- Helper component for the Progress Page ---
+const PracticeQuiz = ({ wordsToPractice, onQuizEnd }) => {
+    const [questions, setQuestions] = useState([]);
+    const [currentQ, setCurrentQ] = useState(0);
+    const [score, setScore] = useState(0);
+    const [feedback, setFeedback] = useState(''); // 'correct', 'incorrect', ''
+
+    useEffect(() => {
+        // Generate 5 questions, or fewer if not enough words
+        const shuffled = [...wordsToPractice].sort(() => 0.5 - Math.random());
+        const quizQuestions = shuffled.slice(0, Math.min(5, wordsToPractice.length)).map(correctAnswer => {
+            const distractors = wordsToPractice
+                .filter(w => w.word !== correctAnswer.word)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+            const options = [correctAnswer, ...distractors].sort(() => 0.5 - Math.random());
+            return { question: correctAnswer.meaning, options, answer: correctAnswer.word };
+        });
+        setQuestions(quizQuestions);
+    }, [wordsToPractice]);
+
+    const handleOptionClick = (selectedWord) => {
+        if (feedback) return;
+        if (selectedWord === questions[currentQ].answer) {
+            setScore(s => s + 1);
+            setFeedback('correct');
+        } else {
+            setFeedback('incorrect');
+        }
+    };
+    
+    const handleNext = () => {
+        setFeedback('');
+        setCurrentQ(q => q + 1);
+    }
+    
+    if (questions.length === 0) return <div className="p-10"><Spinner/> <p>Generating quiz...</p></div>;
+    
+    if (currentQ >= questions.length) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                <div className="card text-center w-full max-w-lg">
+                    <h2 className="text-3xl font-bold mb-4">Quiz Complete!</h2>
+                    <p className="text-5xl font-bold my-6">{score} <span className="text-2xl text-gray-400">/ {questions.length}</span></p>
+                    <p className="text-xl text-green-400 mb-8">You're on your way to mastering these words!</p>
+                    <button onClick={onQuizEnd} className="btn-primary">Back to Progress</button>
+                </div>
+            </div>
+        )
+    }
+
+    const { question, options, answer } = questions[currentQ];
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+            <div className="w-full max-w-2xl">
+                 <div className="text-center mb-4">
+                    <p className="text-2xl font-bold text-green-400">Practice Quiz: Question {currentQ + 1}/{questions.length}</p>
+                    <p className="text-xl text-gray-400">Score: {score}</p>
+                </div>
+                <div className="card text-center">
+                    <p className="text-lg text-gray-400 mb-2">What is the meaning of...</p>
+                    <h2 className="text-3xl md:text-4xl font-bold mb-8 h-24 flex items-center justify-center">{question}</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        {options.map((opt) => (
+                            <button key={opt.word} onClick={() => handleOptionClick(opt.word)} disabled={!!feedback}
+                                className={`p-4 rounded-lg text-xl font-bold transition-all duration-300 transform ${!feedback ? 'bg-gray-700 hover:bg-purple-600 hover:scale-105' : ''} ${feedback && opt.word === answer ? 'bg-green-600 scale-105' : ''} ${feedback === 'incorrect' && opt.word !== answer ? 'bg-red-800 opacity-50' : ''}`}
+                            >{opt.word}</button>
+                        ))}
+                    </div>
+                    {feedback && (
+                        <div className="mt-6 text-center">
+                           <button onClick={handleNext} className="btn-primary">Next Question &rarr;</button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// --- Helper function for relative time formatting ---
+function formatRelativeTime(isoDate) {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const seconds = Math.round((now - date) / 1000);
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.round(minutes / 60);
+    const days = Math.round(hours / 24);
+
+    if (seconds < 60) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+}
