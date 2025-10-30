@@ -21,7 +21,7 @@ const Header = ({ currentPage, navigateTo }) => (
         <nav className="flex items-center justify-between">
             <div className="flex items-center cursor-pointer" onClick={() => navigateTo('home')}>
                 <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
-                    SolveBot AI
+                   SolveBot NLP Anuvaad
                 </h1>
             </div>
             <div className="hidden md:flex items-center space-x-8">
@@ -48,7 +48,7 @@ const Header = ({ currentPage, navigateTo }) => (
 const Footer = () => (
     <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 z-10">
         <p className="text-center text-gray-500 text-sm">
-            © 2025 SolveBot. Built with React & Gemini.
+            © 2025 SolveBot. Built with React.
         </p>
     </footer>
 );
@@ -158,7 +158,7 @@ const HomePage = ({ navigateTo }) => {
         { 
             page: 'chatbot', 
             icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, 
-            title: 'AI Chatbot', 
+            title: 'SolveBot', 
             description: 'Translate text, ask for word definitions, and get instant linguistic help from SolveBot.' 
         },
         { 
@@ -172,7 +172,7 @@ const HomePage = ({ navigateTo }) => {
     return (
         <div className="w-full text-center">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">NLP Toolkit</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">SolveBot NLP Anuvaad & Learning Companion</span>
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-400">
                 A suite of intelligent tools designed for linguistic analysis, vocabulary building, and personalized learning.
