@@ -168,6 +168,7 @@ const HomePage = ({ navigateTo }) => {
             description: 'Track your progress, review challenging words, and take personalized practice quizzes.' 
         }
     ];
+    
 
     return (
         <div className="w-full text-center">
