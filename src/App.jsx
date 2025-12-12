@@ -21,7 +21,7 @@ const Header = ({ currentPage, navigateTo }) => (
         <nav className="flex items-center justify-between">
             <div className="flex items-center cursor-pointer" onClick={() => navigateTo('home')}>
                 <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
-                   SolveBot NLP Anuvaad
+                    SolveBot AI
                 </h1>
             </div>
             <div className="hidden md:flex items-center space-x-8">
@@ -158,7 +158,7 @@ const HomePage = ({ navigateTo }) => {
         { 
             page: 'chatbot', 
             icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, 
-            title: 'NLP Chatbot', 
+            title: 'AI Chatbot',
             description: 'Translate text, ask for word definitions, and get instant linguistic help from SolveBot.' 
         },
         { 
@@ -168,12 +168,11 @@ const HomePage = ({ navigateTo }) => {
             description: 'Track your progress, review challenging words, and take personalized practice quizzes.' 
         }
     ];
-    
 
     return (
         <div className="w-full text-center">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">SolveBot NLP Anuvaad & Learning Companion</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">NLP Toolkit</span>
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-400">
                 A suite of intelligent tools designed for linguistic analysis, vocabulary building, and personalized learning.
@@ -233,7 +232,7 @@ const NlpToolPage = ({ setGameData, navigateTo, gameReady }) => {
                     <h2 className="text-3xl font-bold text-white">Custom Toolkit</h2>
                     <p className="text-gray-400 mt-2 mb-8">Upload a CSV file to analyze its content or play a game with its vocabulary.</p>
                 </div>
-                
+
                 <input type="file" id="csv-upload" className="hidden" accept=".csv" onChange={handleFileChange} />
                 <label htmlFor="csv-upload" className="file-drop-zone">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-4-4V7a4 4 0 014-4h4a4 4 0 014 4v5a4 4 0 01-4 4H7z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11v6m0 0l-3-3m3 3l3-3" /></svg>
