@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // --- THIS IS THE NEW BACKEND URL ---
-const API_URL = 'https://my-project-backend-wqyy.onrender.com';
+import API_URL from './config';
+
 
 // --- Page Navigation ---
 const PAGES = { HOME: 'Home', NLP_TOOL: 'Toolkit', GAME: 'Game', CHATBOT: 'Chatbot', PROGRESS: 'Dashboard' };
@@ -296,18 +297,145 @@ const MeaningMatchGamePage = ({ navigateTo, gameData, updateProgressData }) => {
     return (<div className="w-full max-w-3xl"><div className="flex justify-between items-center mb-4"><div className="text-left w-1/3"><p className="text-lg text-gray-400">Level {level} ({difficulty?.name})</p><p className="text-xl font-bold text-green-400">Question {questionInLevel + 1}/5</p></div><div className="text-center w-1/3"><button onClick={() => setGameState('difficultySelection')} className="btn btn-secondary">Restart Game</button></div><div className="text-right w-1/3"><p className="text-lg text-gray-400">Score</p><p className="text-3xl font-bold text-purple-400">{score}</p><p className="text-xs text-gray-500 -mt-1">High Score: {highScore}</p></div></div><div className="card-main text-center relative"><div className={`absolute top-4 right-4 text-5xl font-bold ${timeLeft <= 5 ? 'text-red-500 animate-ping' : 'text-yellow-300'}`}>{timeLeft}</div><p className="text-lg text-gray-400 mb-2">What is the meaning of...</p><h2 className="text-3xl md:text-4xl font-bold mb-8 h-24 flex items-center justify-center">{currentRound?.meaning}</h2><div className="grid grid-cols-2 gap-4">{options.map((option) => (<button key={option.word} onClick={() => handleOptionClick(option)} disabled={!!feedback} className={`p-4 rounded-lg text-xl font-bold transition-all duration-300 transform ${!feedback ? 'bg-gray-700 hover:bg-purple-600 hover:scale-105' : ''} ${feedback && option.word === currentRound.word ? 'bg-green-600 scale-105' : ''} ${feedback === 'incorrect' && option.word !== currentRound.word ? 'bg-red-800 opacity-50' : ''}`}>{option.word}</button>))}</div></div></div>);
 };
 const ChatbotPage = () => {
-     const [language, setLanguage] = useState('en'); const [isLoading, setIsLoading] = useState(false); const [userInput, setUserInput] = useState(''); const [messages, setMessages] = useState([]); const chatContainerRef = useRef(null);
-    const uiText = { en: { title: "NLP Chatbot", placeholder: "Translate a paragraph or ask for a word's meaning...", send: "Send", welcome: "Hello! I'm SolveBot. How can I help you today?", back: "Back to Home" }, hi: { title: "एनएलपी चैटबॉट", placeholder: "एक पैराग्राफ का अनुवाद करें या किसी शब्द का अर्थ पूछें...", send: "भेजें", welcome: "नमस्ते! मैं सॉल्वबॉट हूँ। मैं आज आपकी कैसे मदद कर सकता हूँ?", back: "होम पर वापस जाएं" } };
-    useEffect(() => { setMessages([{ sender: 'bot', text: uiText[language].welcome }]); }, [language]);
-    useEffect(() => { if(chatContainerRef.current) { chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight; } }, [messages]);
-    const handleSendMessage = async (e) => { e.preventDefault(); if (!userInput.trim() || isLoading) return; const newUserMessage = { sender: 'user', text: userInput }; setMessages(prev => [...prev, newUserMessage]); setUserInput(''); setIsLoading(true); try { const response = await fetch(`${API_URL}/api/chatbot`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userInput, language }), }); const data = await response.json(); const newBotMessage = { sender: 'bot', text: data.reply, isDefinition: data.isDefinition, word: data.word }; setMessages(prev => [...prev, newBotMessage]); } catch (error) { setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I'm having trouble connecting." }]); } finally { setIsLoading(false); } };
-    const base64ToArrayBuffer = (base64) => { const binaryString = window.atob(base64); const len = binaryString.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); } return bytes.buffer; };
-    const pcmToWav = (pcmData, sampleRate) => { const numChannels = 1; const bitsPerSample = 16; const blockAlign = (numChannels * bitsPerSample) / 8; const byteRate = sampleRate * blockAlign; const dataSize = pcmData.byteLength; const buffer = new ArrayBuffer(44 + dataSize); const view = new DataView(buffer); view.setUint32(0, 0x52494646, false); view.setUint32(4, 36 + dataSize, true); view.setUint32(8, 0x57415645, false); view.setUint32(12, 0x666d7420, false); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true); view.setUint16(34, bitsPerSample, true); view.setUint32(36, 0x64617461, false); view.setUint32(40, dataSize, true); const pcm16 = new Int16Array(pcmData); for (let i = 0; i < pcm16.length; i++) { view.setInt16(44 + i * 2, pcm16[i], true); } return new Blob([view], { type: 'audio/wav' }); };
-    const handlePronounce = async (word) => { try { const response = await fetch(`${API_URL}/api/tts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: word }), }); const data = await response.json(); if (data.audioContent) { const pcmData = base64ToArrayBuffer(data.audioContent); const wavBlob = pcmToWav(pcmData, 24000); const audioUrl = URL.createObjectURL(wavBlob); const audio = new Audio(audioUrl); audio.play(); } } catch (error) { console.error("Pronunciation error:", error); } };
-    return ( <div className="flex flex-col h-[80vh] w-full max-w-4xl bg-[#1a2233] rounded-lg border border-purple-500/20 shadow-lg"> <div className="p-4 border-b border-gray-700 flex justify-between items-center"><div className="flex items-center space-x-2 bg-gray-800 p-1 rounded-lg"> <button onClick={() => setLanguage('en')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'en' ? 'bg-purple-600' : ''}`}>EN</button> <button onClick={() => setLanguage('hi')} className={`px-3 py-1 text-sm font-bold rounded-md ${language === 'hi' ? 'bg-purple-600' : ''}`}>HI</button> </div> </div> <div ref={chatContainerRef} className="flex-grow p-4 overflow-y-auto space-y-4"> {messages.map((msg, index) => ( <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}> <div className={`max-w-lg p-3 rounded-xl ${msg.sender === 'user' ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-200'}`}> <p className="whitespace-pre-wrap">{msg.text}</p> {msg.isDefinition && ( <button onClick={() => handlePronounce(msg.word)} className="mt-2 text-sm bg-blue-600 hover:bg-blue-500 rounded-full px-3 py-1 inline-flex items-center"> <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4a1 1 0 011.707-.707l6 6a1 1 0 010 1.414l-6 6A1 1 0 017 16V4z" /></svg> Pronounce </button> )} </div> </div> ))}
-        {isLoading && <div className="flex justify-start"><div className="p-3 rounded-xl bg-gray-700 text-gray-200"><Spinner /></div></div>}
-        </div> <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700 flex"> <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={uiText[language].placeholder} className="flex-grow bg-gray-800 border border-gray-700 rounded-l-lg p-3 focus:outline-none focus:ring-2 focus:ring-purple-500" /> <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-r-lg">Send</button> </form> </div> );
+    const [language, setLanguage] = useState('en');
+    const [isLoading, setIsLoading] = useState(false);
+    const [userInput, setUserInput] = useState('');
+    const [messages, setMessages] = useState([]);
+    const chatContainerRef = useRef(null);
+
+    const uiText = {
+        en: {
+            placeholder: "Translate a paragraph or ask for a word's meaning...",
+            welcome: "Hello! I'm SolveBot. How can I help you today?"
+        },
+        hi: {
+            placeholder: "एक पैराग्राफ का अनुवाद करें या किसी शब्द का अर्थ पूछें...",
+            welcome: "नमस्ते! मैं SolveBot हूँ। मैं आपकी कैसे मदद कर सकता हूँ?"
+        }
+    };
+
+    // Initial welcome message
+    useEffect(() => {
+        setMessages([{ sender: 'bot', text: uiText[language].welcome }]);
+    }, [language]);
+
+    // Auto scroll
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+
+        if (!userInput.trim() || isLoading) return;
+
+        const userMessage = userInput;
+        setMessages(prev => [...prev, { sender: 'user', text: userMessage }]);
+        setUserInput('');
+        setIsLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/api/chatbot`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            });
+
+            if (!response.ok) {
+                throw new Error("Backend error");
+            }
+
+            const data = await response.json();
+
+            let replyText = "⚠️ No response from AI. Please try again.";
+
+            if (data && typeof data.reply === "string" && data.reply.trim() !== "") {
+                replyText = data.reply;
+            }
+
+            setMessages(prev => [...prev, { sender: 'bot', text: replyText }]);
+
+        } catch (error) {
+            console.error("Chatbot error:", error);
+            setMessages(prev => [
+                ...prev,
+                { sender: 'bot', text: "⚠️ AI service is temporarily unavailable. Please try again later." }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-[80vh] w-full max-w-4xl bg-[#1a2233] rounded-lg border border-purple-500/20 shadow-lg">
+            
+            {/* Language Toggle */}
+            <div className="p-4 border-b border-gray-700 flex gap-2">
+                <button
+                    onClick={() => setLanguage('en')}
+                    className={`px-3 py-1 rounded ${language === 'en' ? 'bg-purple-600' : 'bg-gray-700'}`}
+                >
+                    EN
+                </button>
+                <button
+                    onClick={() => setLanguage('hi')}
+                    className={`px-3 py-1 rounded ${language === 'hi' ? 'bg-purple-600' : 'bg-gray-700'}`}
+                >
+                    HI
+                </button>
+            </div>
+
+            {/* Chat Messages */}
+            <div
+                ref={chatContainerRef}
+                className="flex-grow p-4 overflow-y-auto space-y-4"
+            >
+                {messages.map((msg, i) => (
+                    <div
+                        key={i}
+                        className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div
+                            className={`max-w-lg p-3 rounded-xl ${
+                                msg.sender === 'user'
+                                    ? 'bg-purple-700 text-white'
+                                    : 'bg-gray-700 text-gray-200'
+                            }`}
+                        >
+                            {msg.text}
+                        </div>
+                    </div>
+                ))}
+
+                {isLoading && (
+                    <div className="flex justify-start">
+                        <div className="bg-gray-700 p-3 rounded-xl">Typing...</div>
+                    </div>
+                )}
+            </div>
+
+            {/* Input */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700 flex">
+                <input
+                    type="text"
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    placeholder={uiText[language].placeholder}
+                    className="flex-grow bg-gray-800 border border-gray-700 rounded-l-lg p-3 focus:outline-none"
+                />
+                <button
+                    type="submit"
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 rounded-r-lg"
+                >
+                    Send
+                </button>
+            </form>
+        </div>
+    );
 };
+
 const ProgressPage = ({ navigateTo, progressData, clearProgressData }) => {
     const [isQuizActive, setIsQuizActive] = useState(false);
     const handlePronounce = async (word) => { try { const response = await fetch(`${API_URL}/api/tts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: word }), }); const data = await response.json(); if (data.audioContent) { const base64ToArrayBuffer = (base64) => { const b = window.atob(base64); const l = b.length; const u = new Uint8Array(l); for (let i = 0; i < l; ++i) { u[i] = b.charCodeAt(i); } return u.buffer; }; const pcmToWav = (pcm, rate) => { const d = pcm.byteLength; const b = new ArrayBuffer(44 + d); const v = new DataView(b); v.setUint32(0, 0x52494646, false); v.setUint32(4, 36 + d, true); v.setUint32(8, 0x57415645, false); v.setUint32(12, 0x666d7420, false); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); v.setUint32(36, 0x64617461, false); v.setUint32(40, d, true); new Int16Array(b, 44).set(new Int16Array(pcm)); return new Blob([v], { type: 'audio/wav' }); }; const pcmData = base64ToArrayBuffer(data.audioContent); const wavBlob = pcmToWav(pcmData, 24000); const audioUrl = URL.createObjectURL(wavBlob); new Audio(audioUrl).play(); } } catch (error) { console.error("Pronunciation error:", error); } };
