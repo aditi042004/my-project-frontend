@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- THIS IS THE NEW BACKEND URL ---
-import API_URL from './config';
+// ✅ CORRECT API URL (from .env)
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 
 // --- Page Navigation ---
